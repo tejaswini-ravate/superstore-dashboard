@@ -1,23 +1,20 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import us
 
-# Streamlit page setup
-st.set_page_config(page_title="Superstore Dashboard", layout="wide")
-st.title("Superstore Dashboard")
+# Set page config
+st.set_page_config(page_title="Superstore Dashboard", layout="wide", initial_sidebar_state="expanded")
 
-# Load CSV file
-@st.cache_data
-def load_data():
-    df = pd.read_csv("Sample - Superstore.csv", encoding='latin1')
-    return df
+# Load data
+df = pd.read_csv("Sample - Superstore.csv",encoding='latin1')
 
-df = load_data()
-
-# Convert Order Date to datetime
+# Convert Order Date to datetime and extract year
 df['Order Date'] = pd.to_datetime(df['Order Date'])
+df['Year'] = df['Order Date'].dt.year
 
 # Sidebar filters
+st.sidebar.image(r"C:\Users\rawat\OneDrive\Desktop\superstore_dashboard\logo.png", width=200, caption="Superstore Analytics")
 st.sidebar.header("Filter Options")
 
 # Date filter
@@ -29,6 +26,7 @@ date_range = st.sidebar.date_input("Select Date Range", [min_date, max_date], mi
 states = st.sidebar.multiselect("Select States", df['State'].unique(), default=df['State'].unique())
 categories = st.sidebar.multiselect("Select Categories", df['Category'].unique(), default=df['Category'].unique())
 segments = st.sidebar.multiselect("Select Segments", df['Segment'].unique(), default=df['Segment'].unique())
+years = st.sidebar.multiselect("Select Years", sorted(df['Year'].unique()), default=sorted(df['Year'].unique()))
 
 # Filter the dataframe based on selections
 filtered_df = df[
@@ -36,42 +34,29 @@ filtered_df = df[
     (df['Order Date'] <= pd.to_datetime(date_range[1])) &
     (df['State'].isin(states)) &
     (df['Category'].isin(categories)) &
-    (df['Segment'].isin(segments))
+    (df['Segment'].isin(segments)) &
+    (df['Year'].isin(years))
 ]
 
-# Display the filtered data
-st.dataframe(filtered_df.head())
+# Dashboard Title
+st.markdown("<h1 style='color: white; padding-top: 10px;'>Superstore Analytics Dashboard</h1>", unsafe_allow_html=True)
 
-# KPI Cards
-st.markdown("### Key Metrics")
+# Display Data Table
+st.dataframe(filtered_df)
 
+# Key Metrics
 total_sales = filtered_df['Sales'].sum()
 total_profit = filtered_df['Profit'].sum()
-avg_discount = filtered_df['Discount'].mean()
+avg_discount = filtered_df['Discount'].mean() * 100
 total_orders = filtered_df['Order ID'].nunique()
 
 col1, col2, col3, col4 = st.columns(4)
 col1.metric("Total Sales", f"${total_sales:,.2f}")
 col2.metric("Total Profit", f"${total_profit:,.2f}")
-col3.metric("Avg. Discount", f"{avg_discount:.2%}")
-col4.metric("Total Orders", total_orders)
+col3.metric("Avg. Discount", f"{avg_discount:.2f}%")
+col4.metric("Total Orders", f"{total_orders}")
 
-# Function to convert DataFrame to CSV
-@st.cache_data
-def convert_df(df):
-    return df.to_csv(index=False).encode('utf-8')
-
-# Prepare CSV and show button
-csv = convert_df(filtered_df)
-
-st.download_button(
-    label="Download Filtered Data as CSV",
-    data=csv,
-    file_name='filtered_superstore.csv',
-    mime='text/csv',
-)
-
-# Visualizations
+# Visual Insights Section
 st.markdown("## Visual Insights")
 
 # Sales by Category
@@ -88,3 +73,21 @@ st.plotly_chart(fig2, use_container_width=True)
 sales_trend = filtered_df.groupby('Order Date')['Sales'].sum().reset_index()
 fig3 = px.line(sales_trend, x='Order Date', y='Sales', title="Sales Trend Over Time")
 st.plotly_chart(fig3, use_container_width=True)
+
+# Make sure state abbreviations are used
+state_data = filtered_df.groupby('State')['Profit'].sum().reset_index()
+state_data['State Code'] = state_data['State'].apply(lambda x: us.states.lookup(x).abbr if us.states.lookup(x) else None)
+
+# Drop rows where state code couldn't be found
+state_data.dropna(subset=['State Code'], inplace=True)
+
+fig_map = px.choropleth(
+    state_data,
+    locations="State Code",
+    locationmode="USA-states",
+    color="Profit",
+    scope="usa",
+    color_continuous_scale="RdBu",
+    title="Profit by State (USA)"
+)
+st.plotly_chart(fig_map, use_container_width=True)
