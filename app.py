@@ -14,7 +14,7 @@ df['Order Date'] = pd.to_datetime(df['Order Date'])
 df['Year'] = df['Order Date'].dt.year
 
 # Sidebar filters
-st.sidebar.image(r"C:\Users\rawat\OneDrive\Desktop\superstore_dashboard\logo.png", width=200, caption="Superstore Analytics")
+st.sidebar.image("https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Logo_TV_2015.png/800px-Logo_TV_2015.png", width=200, caption="Superstore Analytics")
 st.sidebar.header("Filter Options")
 
 # Date filter
