@@ -4,7 +4,7 @@ import plotly.express as px
 import us
 
 # Set page config
-st.set_page_config(page_title="Superstore Dashboard", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="E-Commerce sales Data Analysis", layout="wide", initial_sidebar_state="expanded")
 
 # Load data
 df = pd.read_csv("Sample - Superstore.csv",encoding='latin1')
